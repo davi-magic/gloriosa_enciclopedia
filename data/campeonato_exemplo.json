@@ -1,0 +1,8 @@
+{
+    "jogadores": [
+        {"nome": "Fulano", "gols": 12},
+        {"nome": "Ciclano", "gols": 5},
+        {"nome": "Beltrano", "gols": 7}
+    ],
+    "partidas": []
+}
