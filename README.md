@@ -1,1 +1,3 @@
-# gloriosa_enciclopedia
+# Gloriosa Enciclopédia
+
+Versão funcional com suporte à IA.
