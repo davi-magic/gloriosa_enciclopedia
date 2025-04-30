@@ -1,11 +1,10 @@
 import streamlit as st
 
 def login():
-    st.markdown("## Acesso protegido")
-    senha = st.text_input("Digite a senha:", type="password")
-    if senha == "botaelasil":
+    st.markdown("## A Gloriosa Enciclopédia")
+    password = st.text_input("Digite a senha:", type="password")
+    if password == "botaelasil":
         return True
-    elif senha:
-        st.error("Senha incorreta.")
+    else:
+        st.warning("Senha incorreta.")
         return False
-    return False
