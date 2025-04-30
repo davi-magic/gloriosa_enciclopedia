@@ -1,0 +1,1 @@
+# Leitura dos links do Challenge Place
