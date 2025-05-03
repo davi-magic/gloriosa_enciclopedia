@@ -1,0 +1,2 @@
+# requirements.txt
+# Dependências da aplicação
