@@ -62,4 +62,9 @@ st.subheader("Fazer pergunta")
 pergunta = st.text_input("Digite sua pergunta")
 if st.button("Responder"):
     if not st.session_state.temporadas:
-        st.warning("Nenhuma
+        st.warning("Nenhuma temporada importada ainda.")  # Aqui estava o erro de string não fechada
+    elif pergunta.strip() == "":
+        st.warning("Digite uma pergunta.")
+    else:
+        resposta = responder_pergunta(pergunta, st.session_state.temporadas)
+        st.markdown(resposta)
