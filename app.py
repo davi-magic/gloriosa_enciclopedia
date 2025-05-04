@@ -1,39 +1,37 @@
 import streamlit as st
-from perguntas import responder_pergunta
-from utils import importar_tabela
+from utils import extrair_artilheiros_assistencias as importar_tabela
 
 st.set_page_config(page_title="A Gloriosa Enciclopédia", layout="wide")
+st.title("A Gloriosa Enciclopédia - Temporadas de Futebol")
 
-st.title("A Gloriosa Enciclopédia")
-st.markdown("Versão de testes - Cole a tabela do Challenge Place abaixo.")
+st.markdown("**Importe os dados da temporada (copie e cole o texto da tabela):**")
+input_text = st.text_area("Cole aqui o conteúdo da tabela", height=400)
 
-# Entrada de texto
-tabela_texto = st.text_area("Cole aqui a tabela copiada do site Challenge Place")
-
-if "temporadas" not in st.session_state:
-    st.session_state.temporadas = {}
-
-if st.button("Importar Tabela"):
-    try:
-        df = importar_tabela(tabela_texto)
-        st.success("Tabela importada com sucesso!")
-        st.session_state.temporadas = {"Temporada Atual": df}
-        st.dataframe(df)
-    except Exception as e:
-        st.warning("Tentando processar a tabela com outro método...")
+if st.button("Importar"):
+    if not input_text.strip():
+        st.warning("Nenhuma tabela foi fornecida.")
+    else:
         try:
-            df = importar_tabela(tabela_texto)
+            artilheiros, assistencias = importar_tabela(input_text)
             st.success("Tabela importada com sucesso!")
-            st.session_state.temporadas = {"Temporada Atual": df}
-            st.dataframe(df)
-        except Exception as e2:
-            st.error(f"Erro ao importar tabela: {e2}")
+            
+            st.subheader("Top 10 Artilheiros")
+            st.dataframe(artilheiros.head(10))
+            
+            st.subheader("Top 10 Assistências")
+            st.dataframe(assistencias.head(10))
 
-# Caixa de pergunta
-pergunta = st.text_input("Faça uma pergunta sobre os dados:")
-
-if pergunta and st.session_state.temporadas:
-    resposta = responder_pergunta(pergunta, st.session_state.temporadas)
-    st.write(resposta)
-elif pergunta:
-    st.warning("Nenhuma tabela foi importada ainda.")
+            pergunta = st.text_input("Faça uma pergunta (ex: Quem é o maior artilheiro?):")
+            if pergunta:
+                resposta = ""
+                if "artilheiro" in pergunta.lower():
+                    top = artilheiros.iloc[0]
+                    resposta = f"O maior artilheiro é {top['Jogador']} ({top['Time']}) com {top['Gols']} gols."
+                elif "assist" in pergunta.lower():
+                    top = assistencias.iloc[0]
+                    resposta = f"O maior assistente é {top['Jogador']} ({top['Time']}) com {top['Assistências']} assistências."
+                else:
+                    resposta = "Pergunta não reconhecida ainda. Tente sobre artilheiros ou assistências."
+                st.markdown(f"**Resposta:** {resposta}")
+        except Exception as e:
+            st.error(f"Erro ao importar a tabela. Detalhes: {e}")
