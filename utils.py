@@ -1,24 +1,40 @@
+import pandas as pd
 import re
 
-def extrair_placares(texto):
-    return []
-
 def extrair_artilheiros_assistencias(texto):
+    linhas = texto.splitlines()
     artilheiros = []
     assistencias = []
 
-    # Extrai apenas o bloco de artilheiros
-    bloco_artilheiros = re.search(r'Artilheiros(.*?)Minimizar', texto, re.DOTALL)
-    if bloco_artilheiros:
-        linhas = re.findall(r'([A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõçÇ0-9.\' \-]+?)\s+([A-Z][a-zA-Z ]+)\s+\1\s+\2\s+(\d+)', bloco_artilheiros.group(1))
-        for nome, time, gols in linhas:
-            artilheiros.append({'jogador': nome.strip(), 'time': time.strip(), 'gols': int(gols)})
-
-    # Extrai apenas o bloco de assistências
-    bloco_assistencias = re.search(r'Assistências(.*?)Minimizar', texto, re.DOTALL)
-    if bloco_assistencias:
-        linhas = re.findall(r'([A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõçÇ0-9.\' \-]+?)\s+([A-Z][a-zA-Z ]+)\s+\1\s+\2\s+(\d+)', bloco_assistencias.group(1))
-        for nome, time, assist in linhas:
-            assistencias.append({'jogador': nome.strip(), 'time': time.strip(), 'assistencias': int(assist)})
-
-    return artilheiros, assistencias
+    modo = None
+    for linha in linhas:
+        linha = linha.strip()
+        if not linha:
+            continue
+        if "Artilheiros" in linha:
+            modo = "gols"
+            continue
+        if "Assistências" in linha:
+            modo = "assists"
+            continue
+        if modo in ["gols", "assists"]:
+            partes = re.split(r"\s{2,}", linha)
+            if len(partes) < 3:
+                partes = re.findall(r"(.*?)\s([^\d\s]+(?:\s[^\d\s]+)*)\s(\d+)", linha)
+                if partes:
+                    partes = partes[0]
+            if isinstance(partes, (list, tuple)) and len(partes) >= 3:
+                jogador = partes[0].strip()
+                time = partes[1].strip()
+                valor = int(partes[2])
+                if modo == "gols":
+                    artilheiros.append({"Jogador": jogador, "Time": time, "Gols": valor})
+                else:
+                    assistencias.append({"Jogador": jogador, "Time": time, "Assistências": valor})
+    if not artilheiros and not assistencias:
+        raise ValueError("Não foi possível identificar linhas de tabela válidas.")
+    
+    df_gols = pd.DataFrame(artilheiros).sort_values("Gols", ascending=False).reset_index(drop=True)
+    df_assists = pd.DataFrame(assistencias).sort_values("Assistências", ascending=False).reset_index(drop=True)
+    
+    return df_gols, df_assists
