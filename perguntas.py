@@ -1,7 +1,7 @@
-def responder_pergunta(pergunta, temporadas):
-    import pandas as pd
-    import re
+import pandas as pd
+import re
 
+def responder_pergunta(pergunta, temporadas):
     todas = pd.concat(temporadas.values(), ignore_index=True)
     pergunta_lower = pergunta.lower()
 
