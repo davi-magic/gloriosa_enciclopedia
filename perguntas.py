@@ -1,42 +1,31 @@
-import pandas as pd
-import re
-
 def responder_pergunta(pergunta, temporadas):
-    todas = pd.concat(temporadas.values(), ignore_index=True)
-    pergunta_lower = pergunta.lower()
+    df = list(temporadas.values())[0]
 
-    def top(df, coluna):
-        return df.sort_values(by=coluna, ascending=False)[["Jogador", coluna]].head(10)
+    if "artilheiro" in pergunta.lower():
+        if "gols" in df.columns:
+            artilheiros = df[["nome", "gols"]].sort_values(by="gols", ascending=False).head(10)
+            return artilheiros.reset_index(drop=True)
+        else:
+            return "Não encontrei a coluna de gols na tabela."
 
-    if "gols" in pergunta_lower and "assistência" in pergunta_lower:
-        df = todas.copy()
-        if "da" in pergunta_lower or "do" in pergunta_lower:
-            for nome, temp in temporadas.items():
-                if nome.lower() in pergunta_lower:
-                    df = temp.copy()
-                    break
-        df["Participações"] = df["Gols"] + df["Assistências"]
-        tabela = top(df, "Participações")
-        return "**Top 10 participações em gols:**\n\n" + tabela.to_markdown(index=False)
+    elif "assistência" in pergunta.lower():
+        colunas_possiveis = [col for col in df.columns if "assist" in col.lower()]
+        if colunas_possiveis:
+            col = colunas_possiveis[0]
+            assistentes = df[["nome", col]].sort_values(by=col, ascending=False).head(10)
+            return assistentes.reset_index(drop=True)
+        else:
+            return "Não encontrei a coluna de assistências."
 
-    if "artilheiro" in pergunta_lower or "mais gols" in pergunta_lower:
-        df = todas.copy()
-        if "da" in pergunta_lower or "do" in pergunta_lower:
-            for nome, temp in temporadas.items():
-                if nome.lower() in pergunta_lower:
-                    df = temp.copy()
-                    break
-        tabela = top(df, "Gols")
-        return "**Top 10 artilheiros:**\n\n" + tabela.to_markdown(index=False)
+    elif "participação" in pergunta.lower() or "gols + assistências" in pergunta.lower():
+        col_gols = [col for col in df.columns if "gol" in col.lower()]
+        col_assist = [col for col in df.columns if "assist" in col.lower()]
+        if col_gols and col_assist:
+            df["participações"] = df[col_gols[0]] + df[col_assist[0]]
+            top_participacoes = df[["nome", "participações"]].sort_values(by="participações", ascending=False).head(10)
+            return top_participacoes.reset_index(drop=True)
+        else:
+            return "Faltam colunas de gols ou assistências para calcular participações."
 
-    if "assistência" in pergunta_lower:
-        df = todas.copy()
-        if "da" in pergunta_lower or "do" in pergunta_lower:
-            for nome, temp in temporadas.items():
-                if nome.lower() in pergunta_lower:
-                    df = temp.copy()
-                    break
-        tabela = top(df, "Assistências")
-        return "**Top 10 assistentes:**\n\n" + tabela.to_markdown(index=False)
-
-    return "Não entendi a pergunta. Tente perguntar sobre artilheiros, assistências ou participações em gols."
+    else:
+        return "Desculpe, ainda não sei responder esse tipo de pergunta."
