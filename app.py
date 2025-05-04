@@ -1,37 +1,63 @@
 import streamlit as st
-from utils import extrair_artilheiros_assistencias as importar_tabela
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
-st.set_page_config(page_title="A Gloriosa Enciclopédia", layout="wide")
-st.title("A Gloriosa Enciclopédia - Temporadas de Futebol")
+# Função para importar as tabelas de artilheiros e assistentes
+def importar_tabela(url):
+    # Realizando o pedido da página
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        raise Exception(f"Erro ao acessar o link. Status Code: {response.status_code}")
+    
+    # Parse do conteúdo da página
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Encontrar todas as tabelas da página
+    tables = soup.find_all('table')
+    
+    # Caso a tabela de artilheiros e assistentes tenha classes específicas
+    artilheiros_table = None
+    assistentes_table = None
+    
+    for table in tables:
+        if 'Artilheiros' in table.get_text():
+            artilheiros_table = table
+        if 'Assistências' in table.get_text():
+            assistentes_table = table
+    
+    if not artilheiros_table or not assistentes_table:
+        raise Exception("Tabelas de artilheiros ou assistências não encontradas.")
 
-st.markdown("**Importe os dados da temporada (copie e cole o texto da tabela):**")
-input_text = st.text_area("Cole aqui o conteúdo da tabela", height=400)
+    # Leitura das tabelas com pandas
+    artilheiros_df = pd.read_html(str(artilheiros_table))[0]
+    assistentes_df = pd.read_html(str(assistentes_table))[0]
+    
+    # Tratamento de dados para garantir que as tabelas estejam formatadas corretamente
+    artilheiros_df.columns = ['Posição', 'Jogador', 'Equipe', 'Gols']
+    assistentes_df.columns = ['Posição', 'Jogador', 'Equipe', 'Assistências']
+    
+    return artilheiros_df, assistentes_df
 
-if st.button("Importar"):
-    if not input_text.strip():
-        st.warning("Nenhuma tabela foi fornecida.")
-    else:
+# Função principal do app Streamlit
+def main():
+    st.title("A Gloriosa Enciclopédia - Estatísticas")
+    
+    # Input do link da página com as tabelas
+    url = st.text_input("Digite o link da tabela:", "")
+    
+    if url:
         try:
-            artilheiros, assistencias = importar_tabela(input_text)
-            st.success("Tabela importada com sucesso!")
+            artilheiros, assistentes = importar_tabela(url)
+            st.subheader("Tabela de Artilheiros")
+            st.dataframe(artilheiros)  # Exibe a tabela de artilheiros
             
-            st.subheader("Top 10 Artilheiros")
-            st.dataframe(artilheiros.head(10))
+            st.subheader("Tabela de Assistências")
+            st.dataframe(assistentes)  # Exibe a tabela de assistências
             
-            st.subheader("Top 10 Assistências")
-            st.dataframe(assistencias.head(10))
-
-            pergunta = st.text_input("Faça uma pergunta (ex: Quem é o maior artilheiro?):")
-            if pergunta:
-                resposta = ""
-                if "artilheiro" in pergunta.lower():
-                    top = artilheiros.iloc[0]
-                    resposta = f"O maior artilheiro é {top['Jogador']} ({top['Time']}) com {top['Gols']} gols."
-                elif "assist" in pergunta.lower():
-                    top = assistencias.iloc[0]
-                    resposta = f"O maior assistente é {top['Jogador']} ({top['Time']}) com {top['Assistências']} assistências."
-                else:
-                    resposta = "Pergunta não reconhecida ainda. Tente sobre artilheiros ou assistências."
-                st.markdown(f"**Resposta:** {resposta}")
         except Exception as e:
-            st.error(f"Erro ao importar a tabela. Detalhes: {e}")
+            st.error(f"Erro: {e}")
+
+if __name__ == "__main__":
+    main()
