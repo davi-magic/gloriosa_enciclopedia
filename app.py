@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import re
-from io import StringIO
+from perguntas import responder_pergunta
 
 st.set_page_config(page_title="A Gloriosa Enciclopédia", layout="centered")
 
@@ -42,46 +41,25 @@ st.subheader("Importar nova temporada")
 nome_temporada = st.text_input("Nome da temporada")
 tabela_colada = st.text_area("Cole aqui a tabela da aba 'Statistics' do Challenge Place")
 
-# Função para limpar e formatar o texto da tabela copiada
-def limpar_tabela(tabela_colada):
-    # Expressão regular para separar os dados dos jogadores
-    pattern = r"(\d+)\s+([A-Za-z\s\.]+)\s+([A-Za-z\s]+)\s+(\d+)"
-    matches = re.findall(pattern, tabela_colada)
-
-    # Verifica se encontrou dados e os organiza em um formato mais adequado
-    if not matches:
-        st.error("Tabela não pôde ser processada. Certifique-se de copiar a tabela corretamente.")
-        return None
-
-    dados = []
-    for match in matches:
-        # Desconstrua a linha para formar uma lista de valores
-        dados.append({
-            "Posição": match[0],
-            "Jogador": match[1].strip(),
-            "Time": match[2].strip(),
-            "Gols": int(match[3]),
-        })
-
-    # Convertendo a lista de dicionários para um DataFrame
-    df = pd.DataFrame(dados)
-    return df
-
 if st.button("Importar tabela"):
-    df = limpar_tabela(tabela_colada)
-    if df is not None:
-        st.session_state.temporadas[nome_temporada] = df
-        st.success(f"Temporada '{nome_temporada}' importada com sucesso!")
-        st.write(df)
+    try:
+        # Processando a tabela colada
+        from io import StringIO
+        df = pd.read_csv(StringIO(tabela_colada), sep=None, engine="python")
+        if "Jogador" not in df.columns:
+            st.error("Tabela inválida. Certifique-se de copiar a tabela corretamente.")
+        else:
+            df["Gols"] = pd.to_numeric(df.get("Gols", 0), errors="coerce").fillna(0).astype(int)
+            df["Assistências"] = pd.to_numeric(df.get("Assistências", 0), errors="coerce").fillna(0).astype(int)
+            df["Participações"] = df["Gols"] + df["Assistências"]
+            st.session_state.temporadas[nome_temporada] = df
+            st.success(f"Temporada '{nome_temporada}' importada com sucesso!")
+    except Exception as e:
+        st.error(f"Erro ao importar tabela: {e}")
 
 st.subheader("Fazer pergunta")
 
 pergunta = st.text_input("Digite sua pergunta")
 if st.button("Responder"):
     if not st.session_state.temporadas:
-        st.warning("Nenhuma temporada importada ainda.")
-    elif pergunta.strip() == "":
-        st.warning("Digite uma pergunta.")
-    else:
-        resposta = responder_pergunta(pergunta, st.session_state.temporadas)
-        st.markdown(resposta)
+        st.warning("Nenhuma
