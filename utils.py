@@ -1,16 +1,24 @@
-import pandas as pd
 import re
-from io import StringIO
 
-def importar_tabela(texto):
-    linhas = texto.strip().splitlines()
-    linhas_tabela = [linha for linha in linhas if re.search(r'\S+\s{2,}\S+', linha)]
+def extrair_placares(texto):
+    return []
 
-    if not linhas_tabela:
-        raise ValueError("Não foi possível identificar linhas de tabela válidas.")
+def extrair_artilheiros_assistencias(texto):
+    artilheiros = []
+    assistencias = []
 
-    tabela_bruta = "\n".join(linhas_tabela)
-    tabela_formatada = re.sub(r'\s{2,}', '\t', tabela_bruta)
+    # Extrai apenas o bloco de artilheiros
+    bloco_artilheiros = re.search(r'Artilheiros(.*?)Minimizar', texto, re.DOTALL)
+    if bloco_artilheiros:
+        linhas = re.findall(r'([A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõçÇ0-9.\' \-]+?)\s+([A-Z][a-zA-Z ]+)\s+\1\s+\2\s+(\d+)', bloco_artilheiros.group(1))
+        for nome, time, gols in linhas:
+            artilheiros.append({'jogador': nome.strip(), 'time': time.strip(), 'gols': int(gols)})
 
-    df = pd.read_csv(StringIO(tabela_formatada), sep='\t')
-    return df
+    # Extrai apenas o bloco de assistências
+    bloco_assistencias = re.search(r'Assistências(.*?)Minimizar', texto, re.DOTALL)
+    if bloco_assistencias:
+        linhas = re.findall(r'([A-ZÁÉÍÓÚÂÊÎÔÛÃÕa-záéíóúâêîôûãõçÇ0-9.\' \-]+?)\s+([A-Z][a-zA-Z ]+)\s+\1\s+\2\s+(\d+)', bloco_assistencias.group(1))
+        for nome, time, assist in linhas:
+            assistencias.append({'jogador': nome.strip(), 'time': time.strip(), 'assistencias': int(assist)})
+
+    return artilheiros, assistencias
