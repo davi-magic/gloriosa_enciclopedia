@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from perguntas import responder_pergunta
+from io import StringIO
 
 st.set_page_config(page_title="A Gloriosa Enciclopédia", layout="centered")
 
@@ -44,16 +45,31 @@ tabela_colada = st.text_area("Cole aqui a tabela da aba 'Statistics' do Challeng
 if st.button("Importar tabela"):
     try:
         # Processando a tabela colada
-        from io import StringIO
-        df = pd.read_csv(StringIO(tabela_colada), sep=None, engine="python")
+        tabela_io = StringIO(tabela_colada)
+        
+        # Tentando detectar automaticamente o separador (tab, vírgula, ou outro)
+        try:
+            df = pd.read_csv(tabela_io, sep=None, engine='python')
+        except Exception as e:
+            st.error(f"Erro ao tentar importar a tabela. Detalhes: {e}")
+            st.warning("Tentando processar a tabela com outro método...")
+            
+            # Tentando com um delimitador padrão (tabulação ou múltiplos espaços)
+            tabela_io.seek(0)
+            df = pd.read_csv(tabela_io, sep=r'\s+', engine='python')
+        
         if "Jogador" not in df.columns:
             st.error("Tabela inválida. Certifique-se de copiar a tabela corretamente.")
         else:
+            # Convertendo as colunas de Gols e Assistências para numérico
             df["Gols"] = pd.to_numeric(df.get("Gols", 0), errors="coerce").fillna(0).astype(int)
             df["Assistências"] = pd.to_numeric(df.get("Assistências", 0), errors="coerce").fillna(0).astype(int)
             df["Participações"] = df["Gols"] + df["Assistências"]
+            
+            # Adicionando a temporada
             st.session_state.temporadas[nome_temporada] = df
             st.success(f"Temporada '{nome_temporada}' importada com sucesso!")
+    
     except Exception as e:
         st.error(f"Erro ao importar tabela: {e}")
 
@@ -62,7 +78,7 @@ st.subheader("Fazer pergunta")
 pergunta = st.text_input("Digite sua pergunta")
 if st.button("Responder"):
     if not st.session_state.temporadas:
-        st.warning("Nenhuma temporada importada ainda.")  # Aqui estava o erro de string não fechada
+        st.warning("Nenhuma temporada importada ainda.")
     elif pergunta.strip() == "":
         st.warning("Digite uma pergunta.")
     else:
