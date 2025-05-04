@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import StringIO
 from perguntas import responder_pergunta
 
 st.set_page_config(page_title="A Gloriosa Enciclopédia", layout="centered")
@@ -43,7 +44,7 @@ tabela_colada = st.text_area("Cole aqui a tabela da aba 'Statistics' do Challeng
 
 if st.button("Importar tabela"):
     try:
-        df = pd.read_csv(pd.compat.StringIO(tabela_colada), sep=None, engine="python")
+        df = pd.read_csv(StringIO(tabela_colada), sep=None, engine="python")
         if "Jogador" not in df.columns:
             st.error("Tabela inválida. Certifique-se de copiar a tabela corretamente.")
         else:
