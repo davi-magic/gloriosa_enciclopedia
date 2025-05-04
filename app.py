@@ -1,63 +1,53 @@
 import streamlit as st
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 
-# Função para importar as tabelas de artilheiros e assistentes
 def importar_tabela(url):
-    # Realizando o pedido da página
-    response = requests.get(url)
-    
-    if response.status_code != 200:
-        raise Exception(f"Erro ao acessar o link. Status Code: {response.status_code}")
-    
-    # Parse do conteúdo da página
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Encontrar todas as tabelas da página
-    tables = soup.find_all('table')
-    
-    # Caso a tabela de artilheiros e assistentes tenha classes específicas
-    artilheiros_table = None
-    assistentes_table = None
-    
-    for table in tables:
-        if 'Artilheiros' in table.get_text():
-            artilheiros_table = table
-        if 'Assistências' in table.get_text():
-            assistentes_table = table
-    
-    if not artilheiros_table or not assistentes_table:
-        raise Exception("Tabelas de artilheiros ou assistências não encontradas.")
+    try:
+        # Realiza a requisição HTTP para obter o conteúdo da página
+        response = requests.get(url)
+        response.raise_for_status()  # Verifica se a requisição foi bem-sucedida
 
-    # Leitura das tabelas com pandas
-    artilheiros_df = pd.read_html(str(artilheiros_table))[0]
-    assistentes_df = pd.read_html(str(assistentes_table))[0]
-    
-    # Tratamento de dados para garantir que as tabelas estejam formatadas corretamente
-    artilheiros_df.columns = ['Posição', 'Jogador', 'Equipe', 'Gols']
-    assistentes_df.columns = ['Posição', 'Jogador', 'Equipe', 'Assistências']
-    
-    return artilheiros_df, assistentes_df
+        # Analisa o conteúdo HTML da página
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-# Função principal do app Streamlit
+        # Encontra todas as tabelas na página
+        tables = soup.find_all('table')
+
+        if not tables:
+            st.error("Nenhuma tabela encontrada na página.")
+            return None
+
+        # Para este exemplo, assumimos que a primeira tabela é a de artilheiros
+        # e a segunda tabela é a de assistentes. Isso pode variar dependendo da estrutura da página.
+        artilheiros_df = pd.read_html(str(tables[0]))[0]
+        assistentes_df = pd.read_html(str(tables[1]))[0] if len(tables) > 1 else None
+
+        return artilheiros_df, assistentes_df
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Erro ao acessar a URL: {e}")
+        return None, None
+    except ValueError as e:
+        st.error(f"Erro ao processar as tabelas: {e}")
+        return None, None
+
 def main():
-    st.title("A Gloriosa Enciclopédia - Estatísticas")
-    
-    # Input do link da página com as tabelas
-    url = st.text_input("Digite o link da tabela:", "")
-    
+    st.title("Importador de Estatísticas do Challenge Place")
+
+    url = st.text_input("Insira o link da página de estatísticas do Challenge Place:")
+
     if url:
-        try:
-            artilheiros, assistentes = importar_tabela(url)
+        artilheiros_df, assistentes_df = importar_tabela(url)
+
+        if artilheiros_df is not None:
             st.subheader("Tabela de Artilheiros")
-            st.dataframe(artilheiros)  # Exibe a tabela de artilheiros
-            
-            st.subheader("Tabela de Assistências")
-            st.dataframe(assistentes)  # Exibe a tabela de assistências
-            
-        except Exception as e:
-            st.error(f"Erro: {e}")
+            st.dataframe(artilheiros_df)
+
+        if assistentes_df is not None:
+            st.subheader("Tabela de Assistentes")
+            st.dataframe(assistentes_df)
 
 if __name__ == "__main__":
     main()
