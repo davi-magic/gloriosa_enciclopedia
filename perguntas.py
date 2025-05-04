@@ -1,26 +1,42 @@
-import pandas as pd
+def responder_pergunta(pergunta, temporadas):
+    import pandas as pd
+    import re
 
-def responder_pergunta(pergunta, df):
-    pergunta = pergunta.lower()
-    n = 10  # padrão top 10
+    todas = pd.concat(temporadas.values(), ignore_index=True)
+    pergunta_lower = pergunta.lower()
 
-    # detecta se o usuário pediu outro número
-    for palavra in pergunta.split():
-        if palavra.isdigit():
-            n = int(palavra)
+    def top(df, coluna):
+        return df.sort_values(by=coluna, ascending=False)[["Jogador", coluna]].head(10)
 
-    if "artilheiro" in pergunta or "gols" in pergunta:
-        ranking = df.groupby("Jogador")["Gols"].sum().sort_values(ascending=False).head(n)
-        titulo = f"Top {n} artilheiros"
-    elif "assistência" in pergunta:
-        ranking = df.groupby("Jogador")["Assistências"].sum().sort_values(ascending=False).head(n)
-        titulo = f"Top {n} assistências"
-    elif "participação" in pergunta:
-        ranking = df.groupby("Jogador")["Participações"].sum().sort_values(ascending=False).head(n)
-        titulo = f"Top {n} participações em gols"
-    else:
-        return "Não entendi a pergunta. Tente algo como 'Quem é o artilheiro da história?'."
+    if "gols" in pergunta_lower and "assistência" in pergunta_lower:
+        df = todas.copy()
+        if "da" in pergunta_lower or "do" in pergunta_lower:
+            for nome, temp in temporadas.items():
+                if nome.lower() in pergunta_lower:
+                    df = temp.copy()
+                    break
+        df["Participações"] = df["Gols"] + df["Assistências"]
+        tabela = top(df, "Participações")
+        return "**Top 10 participações em gols:**\n\n" + tabela.to_markdown(index=False)
 
-    resultado = f"### {titulo}\n"
-    resultado += ranking.to_frame().reset_index().to_markdown(index=False)
-    return resultado
+    if "artilheiro" in pergunta_lower or "mais gols" in pergunta_lower:
+        df = todas.copy()
+        if "da" in pergunta_lower or "do" in pergunta_lower:
+            for nome, temp in temporadas.items():
+                if nome.lower() in pergunta_lower:
+                    df = temp.copy()
+                    break
+        tabela = top(df, "Gols")
+        return "**Top 10 artilheiros:**\n\n" + tabela.to_markdown(index=False)
+
+    if "assistência" in pergunta_lower:
+        df = todas.copy()
+        if "da" in pergunta_lower or "do" in pergunta_lower:
+            for nome, temp in temporadas.items():
+                if nome.lower() in pergunta_lower:
+                    df = temp.copy()
+                    break
+        tabela = top(df, "Assistências")
+        return "**Top 10 assistentes:**\n\n" + tabela.to_markdown(index=False)
+
+    return "Não entendi a pergunta. Tente perguntar sobre artilheiros, assistências ou participações em gols."
